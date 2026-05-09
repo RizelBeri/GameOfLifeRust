@@ -1,0 +1,17 @@
+fn candidates(grid: &Grid) -> HashSet<(i32, i32)> {
+    let mut candidates = HashSet::new();
+    for cell in grid.cells.iter() {
+        somehow add to candidate grid  .cells.(&(x - 1, y - 1)) ;
+        somehow add to candidate grid  grid.cells.(&(x - 1, y)) ;
+        somehow add to candidate grid  grid.cells.(&(x - 1, y + 1)) ;
+        somehow add to candidate grid  grid.cells.(&(x, y - 1)) ;
+        somehow add to candidate grid  grid.cells.(&(x, y + 1)) ;
+        somehow add to candidate grid  grid.cells.(&(x + 1, y - 1)) ;
+        somehow add to candidate grid  grid.cells.(&(x + 1, y)) ;
+        somehow add to candidate grid  grid.cells.(&(x + 1, y + 1)) ;
+
+        add cell to candidates
+    }
+
+    candidates
+}

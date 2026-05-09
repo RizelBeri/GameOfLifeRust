@@ -1,14 +1,27 @@
-#![allow(unused_variables)]
-#![allow(dead_code)]
-mod game_logik;
+use eframe::egui;
+mod grid;
 
-#[derive(Debug, Clone, PartialEq)]
-enum State {
-    Dead,
-    Alive,
+fn main() -> eframe::Result<()> {
+    eframe::run_native(
+        "Game of Life",
+        eframe::NativeOptions::default(),
+        Box::new(|_cc| Ok(Box::new(MyApp::default()))),
+    )
 }
 
-fn main() {
-    // launch(App);
-    game_logik::play();
+#[derive(Default)]
+struct MyApp {
+    count: i32,
+}
+
+impl eframe::App for MyApp {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.heading("Game of Life");
+
+        if ui.button("Click me").clicked() {
+            self.count += 1;
+        }
+
+        ui.label(format!("Count: {}", self.count));
+    }
 }
