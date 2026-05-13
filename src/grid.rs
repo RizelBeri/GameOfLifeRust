@@ -5,14 +5,23 @@ use std::collections::HashSet;
 // --------Grid--------
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Grid {
-    cells: HashSet<(i32, i32)>, // Represents the living cells
+    pub cells: HashSet<(i32, i32)>, // Represents the living cells
+}
+
+impl Default for Grid {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Grid {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             cells: HashSet::new(),
         }
+    }
+    pub fn insert(&mut self, x: i32, y: i32) {
+        self.cells.insert((x, y));
     }
 }
 
@@ -45,7 +54,7 @@ fn candidates(grid: &Grid) -> HashSet<(i32, i32)> {
     candidates
 }
 
-fn tick(current: &Grid) -> Grid {
+pub fn tick(current: &Grid) -> Grid {
     let mut next = Grid::new();
 
     for (x, y) in candidates(current) {
@@ -54,7 +63,7 @@ fn tick(current: &Grid) -> Grid {
         //----Applying rules----
         // adding to new grid only cells that stays or become alive
         let alive = current.cells.contains(&(x, y));
-        if (alive && (n == 2 || n == 3) || (!alive && n == 3)) {
+        if alive && (n == 2 || n == 3) || (!alive && n == 3) {
             next.cells.insert((x, y));
         };
     }
