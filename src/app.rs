@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use eframe::egui::{Color32, Panel, Pos2, Rect};
-use egui::{containers::menu, response};
+use egui::containers::menu;
 use std::time::{Duration, Instant};
 
 use crate::grid;
@@ -77,9 +77,11 @@ impl eframe::App for MyApp {
         });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
-            egui::Frame::default().show(ui, |ui| {
-                let scene = egui::Scene::new().max_inner_size([350.0, 350.0]);
+            let frame = egui::Frame::default().fill(Color32::WHITE);
+            frame.show(ui, |ui| {
+                ui.set_max_height(400.0);
 
+                let scene = egui::Scene::new().zoom_range(0.1..=2.0);
                 let response = scene.show(ui, &mut self.scene_rect, |ui| {
                     let panel_rect = ui.max_rect();
                     let painter = ui.painter_at(panel_rect);
