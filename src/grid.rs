@@ -41,6 +41,7 @@ fn count_neighbors(grid: &Grid, x: i32, y: i32) -> u8 {
     count
 }
 
+// Returns all candidate cells for the next generation
 fn candidates(grid: &Grid) -> HashSet<(i32, i32)> {
     let mut candidates = HashSet::new();
     for (x, y) in grid.cells.iter() {
@@ -54,6 +55,7 @@ fn candidates(grid: &Grid) -> HashSet<(i32, i32)> {
     candidates
 }
 
+// Advances the grid to the next generation
 pub fn tick(current: &Grid) -> Grid {
     let mut next = Grid::new();
 
