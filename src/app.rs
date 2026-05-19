@@ -81,6 +81,8 @@ impl eframe::App for MyApp {
             frame.show(ui, |ui| {
                 ui.set_max_height(400.0);
 
+                // Mouse position Debug
+
                 let scene = egui::Scene::new().zoom_range(0.1..=2.0);
                 let response = scene.show(ui, &mut self.scene_rect, |ui| {
                     let panel_rect = ui.max_rect();
@@ -91,8 +93,11 @@ impl eframe::App for MyApp {
                 });
             });
 
-            // let panel_rect = ui.max_rect();
-            // let painter = ui.painter_at(panel_rect); // clips to panel automatically
+            let mouse_pos: Option<Pos2> = ui.input(|i| i.pointer.hover_pos());
+
+            if let Some(pos) = mouse_pos {
+                ui.label(format!("Mouse position: X: {:.1}, Y: {:.1}", pos.x, pos.y));
+            }
         });
     }
 }
@@ -122,7 +127,7 @@ fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Ve
         let x_pos = origin.x + x as f32 * CELL_SIZE;
         painter.line_segment(
             [
-                Pos2::new(x_pos, origin.y),
+                Pos2::new(x_pos + 5.0, origin.y),
                 Pos2::new(x_pos, origin.y + screen.y),
             ],
             stroke,
@@ -134,7 +139,7 @@ fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Ve
         let y_pos = origin.y + y as f32 * CELL_SIZE;
         painter.line_segment(
             [
-                Pos2::new(origin.x, y_pos),
+                Pos2::new(origin.x, y_pos + 5.0),
                 Pos2::new(origin.x + screen.x, y_pos),
             ],
             stroke,
