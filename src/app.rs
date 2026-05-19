@@ -98,6 +98,18 @@ impl eframe::App for MyApp {
             if let Some(pos) = mouse_pos {
                 ui.label(format!("Mouse position: X: {:.1}, Y: {:.1}", pos.x, pos.y));
             }
+            ui.input(|i| {
+                if i.pointer.primary_clicked() {
+                    if let Some(pos) = mouse_pos {
+                        self.grid.insert(pos.x as i32, pos.y as i32);
+                        println!("Grid cells:{:?}", self.grid.cells);
+                        // i.label(format!(
+                        //     "Mouse position clicked: X: {:.1}, Y: {:.1}",
+                        //     pos.x, pos.y
+                        // ));
+                    }
+                }
+            });
         });
     }
 }
@@ -128,7 +140,7 @@ fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Ve
         painter.line_segment(
             [
                 Pos2::new(x_pos + 5.0, origin.y),
-                Pos2::new(x_pos, origin.y + screen.y),
+                Pos2::new(x_pos + 5.0, origin.y + screen.y),
             ],
             stroke,
         );
@@ -140,7 +152,7 @@ fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Ve
         painter.line_segment(
             [
                 Pos2::new(origin.x, y_pos + 5.0),
-                Pos2::new(origin.x + screen.x, y_pos),
+                Pos2::new(origin.x + screen.x, y_pos + 5.0),
             ],
             stroke,
         );
