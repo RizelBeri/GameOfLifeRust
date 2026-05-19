@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use eframe::egui::{Color32, Panel, Pos2, Rect};
-use egui::containers::menu;
+use egui::{Vec2, containers::menu};
 use std::time::{Duration, Instant};
 
 use crate::grid;
@@ -18,8 +18,9 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new() -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut grid = grid::Grid::default();
+
         grid.insert(1, 0);
         grid.insert(2, 1);
         grid.insert(0, 2);
@@ -31,13 +32,15 @@ impl MyApp {
             gen_count: 0,
             last_tick: Instant::now(),
             simulation_status: false,
-            scene_rect: Rect::ZERO,
+            scene_rect: Rect::NOTHING,
         }
     }
 }
 
 impl eframe::App for MyApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let mouse_pos: Option<Pos2> = ui.input(|i| i.pointer.hover_pos());
+
         // Generation simulation delay
         if self.simulation_status {
             ui.ctx()
@@ -77,13 +80,18 @@ impl eframe::App for MyApp {
         });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
+            ui.set_max_size(Vec2::new(600.0, 600.0));
+            let panel_size = ui.min_size();
+
+            // FRAME
             let frame = egui::Frame::default().fill(Color32::WHITE);
             frame.show(ui, |ui| {
                 ui.set_max_height(400.0);
-
+                let frame_size = ui.min_size();
                 // Mouse position Debug
-
                 let scene = egui::Scene::new().zoom_range(0.1..=2.0);
+
+                handle_click(panel_size, frame_size, mouse_pos);
                 let response = scene.show(ui, &mut self.scene_rect, |ui| {
                     let panel_rect = ui.max_rect();
                     let painter = ui.painter_at(panel_rect);
@@ -93,23 +101,10 @@ impl eframe::App for MyApp {
                 });
             });
 
-            let mouse_pos: Option<Pos2> = ui.input(|i| i.pointer.hover_pos());
-
             if let Some(pos) = mouse_pos {
                 ui.label(format!("Mouse position: X: {:.1}, Y: {:.1}", pos.x, pos.y));
             }
-            ui.input(|i| {
-                if i.pointer.primary_clicked() {
-                    if let Some(pos) = mouse_pos {
-                        self.grid.insert(pos.x as i32, pos.y as i32);
-                        println!("Grid cells:{:?}", self.grid.cells);
-                        // i.label(format!(
-                        //     "Mouse position clicked: X: {:.1}, Y: {:.1}",
-                        //     pos.x, pos.y
-                        // ));
-                    }
-                }
-            });
+            ui.label(format!("Current generation: {}", self.gen_count));
         });
     }
 }
@@ -157,4 +152,8 @@ fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Ve
             stroke,
         );
     }
+}
+
+fn handle_click(scene:  Vec2, frame: Vec2, Pos2) {
+
 }
