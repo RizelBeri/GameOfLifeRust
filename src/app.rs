@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use eframe::egui::{Color32, Panel, Pos2, Rect};
-use egui::{Vec2, containers::menu};
+use egui::{Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
 
 use crate::grid;
@@ -11,11 +11,17 @@ const CELL_SIZE: f32 = 10.0;
 
 pub struct MyApp {
     grid: grid::Grid,
+
     gen_count: u64,
+
     last_tick: Instant,
     simulation_status: bool,
+
+    camera: Vec2,
+
     scene_rect: Rect,
 }
+
 
 impl MyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -33,14 +39,13 @@ impl MyApp {
             last_tick: Instant::now(),
             simulation_status: false,
             scene_rect: Rect::NOTHING,
+            camera: Vec2::ZERO,
         }
     }
 }
 
 impl eframe::App for MyApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let mouse_pos: Option<Pos2> = ui.input(|i| i.pointer.hover_pos());
-
         // Generation simulation delay
         if self.simulation_status {
             ui.ctx()
@@ -78,82 +83,59 @@ impl eframe::App for MyApp {
             });
             // ui.horizontal(|ui| {});
         });
-
         egui::CentralPanel::default().show_inside(ui, |ui| {
-            ui.set_max_size(Vec2::new(600.0, 600.0));
             let panel_size = ui.min_size();
 
             // FRAME
             let frame = egui::Frame::default().fill(Color32::WHITE);
             frame.show(ui, |ui| {
                 ui.set_max_height(400.0);
-                let frame_size = ui.min_size();
-                // Mouse position Debug
-                let scene = egui::Scene::new().zoom_range(0.1..=2.0);
 
-                handle_click(panel_size, frame_size, mouse_pos);
-                let response = scene.show(ui, &mut self.scene_rect, |ui| {
-                    let panel_rect = ui.max_rect();
-                    let painter = ui.painter_at(panel_rect);
+                // Recieve aviable space
+                let available = ui.available_size();
 
-                    paint_gridlines(&painter, panel_rect.min, panel_rect.size());
-                    paint_grid(&painter, &self.grid, panel_rect.min);
-                });
-            });
+                // Creating area for painting
+                let (response, painter) = ui.allocate_painter(available, Sense::click_and_drag());
+                let rect = response.rect;
 
-            if let Some(pos) = mouse_pos {
-                ui.label(format!("Mouse position: X: {:.1}, Y: {:.1}", pos.x, pos.y));
-            }
+                // ======================================
+                // CAMERA MOVEMENT
+                // ======================================
+
+                if response.dragged() {
+                    self.camera += response.drag_delta();
+                }
+
+                // ======================================
+                // MOUSE -> GRID COORD
+                // ======================================
+                let mouse_pos = ui.input(|i| i.pointer.hover_pos());
+
+                if let Some(mouse) = mouse_pos {
+                    // position inside area
+                    let local = mouse - rect.min.to_vec2();
+
+                    // position inside world
+                    let world = local - self.camera;
+
+                    let cell_x = (world.x / CELL_SIZE).floor() as i32;
+                    let cell_y = (world.y / CELL_SIZE).floor() as i32;
+
+                    painter.text(
+                        rect.min + Vec2::new(10.0, 10.0),
+                        egui::Align2::LEFT_TOP,
+                        format!("Cell: {}, {}", cell_x, cell_y),
+                        egui::FontId::monospace(18.0),
+                        Color32::WHITE,
+                    );
+
+                    if responce.clicked() {
+                        self.grid.toggle(cell_x, cell_y);
+                    }
+                }
+
+
             ui.label(format!("Current generation: {}", self.gen_count));
         });
     }
-}
-
-// draw new generation
-fn paint_grid(painter: &egui::Painter, grid: &grid::Grid, origin: egui::Pos2) {
-    for (x, y) in &grid.cells {
-        painter.rect_filled(
-            Rect::from_center_size(
-                Pos2::new(
-                    origin.x + *x as f32 * CELL_SIZE,
-                    origin.y + *y as f32 * CELL_SIZE,
-                ),
-                egui::Vec2::splat(CELL_SIZE),
-            ),
-            0.0,
-            Color32::DARK_GRAY,
-        );
-    }
-}
-
-fn paint_gridlines(painter: &egui::Painter, origin: egui::Pos2, screen: egui::Vec2) {
-    let stroke = egui::Stroke::new(0.5, Color32::DARK_GRAY);
-
-    // vertical lines
-    for x in 0..=(screen.x / CELL_SIZE) as i32 {
-        let x_pos = origin.x + x as f32 * CELL_SIZE;
-        painter.line_segment(
-            [
-                Pos2::new(x_pos + 5.0, origin.y),
-                Pos2::new(x_pos + 5.0, origin.y + screen.y),
-            ],
-            stroke,
-        );
-    }
-
-    // horizontal lines
-    for y in 0..=(screen.y / CELL_SIZE) as i32 {
-        let y_pos = origin.y + y as f32 * CELL_SIZE;
-        painter.line_segment(
-            [
-                Pos2::new(origin.x, y_pos + 5.0),
-                Pos2::new(origin.x + screen.x, y_pos + 5.0),
-            ],
-            stroke,
-        );
-    }
-}
-
-fn handle_click(scene:  Vec2, frame: Vec2, Pos2) {
-
 }
