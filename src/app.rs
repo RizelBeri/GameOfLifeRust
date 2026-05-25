@@ -22,7 +22,6 @@ pub struct MyApp {
     scene_rect: Rect,
 }
 
-
 impl MyApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut grid = grid::Grid::default();
@@ -129,11 +128,62 @@ impl eframe::App for MyApp {
                         Color32::WHITE,
                     );
 
-                    if responce.clicked() {
+                    if response.clicked() {
                         self.grid.toggle(cell_x, cell_y);
                     }
-                }
 
+                    // GRID LINES
+
+                    let stroke = egui::Stroke::new(1.0, Color32::DARK_GRAY);
+
+                    let cols = (rect.width() / CELL_SIZE) as i32 + 2;
+                    let rows = (rect.height() / CELL_SIZE) as i32 + 2;
+
+                    let offset_x = self.camera.x.rem_euclid(CELL_SIZE);
+                    let offset_y = self.camera.y.rem_euclid(CELL_SIZE);
+
+                    // vertical
+                    for x in -1..cols {
+                        let x_pos = rect.min.x + x as f32 + CELL_SIZE + offset_x;
+
+                        painter.line_segment(
+                            [
+                                Pos2::new(x_pos, rect.top()),
+                                Pos2::new(x_pos, rect.bottom()),
+                            ],
+                            stroke,
+                        );
+                    }
+
+                    // horizontal
+                    for x in -1..rows {
+                        let y_pos = rect.min.y + x as f32 + CELL_SIZE + offset_y;
+
+                        painter.line_segment(
+                            [
+                                Pos2::new(rect.left(), y_pos),
+                                Pos2::new(rect.right(), y_pos),
+                            ],
+                            stroke,
+                        );
+                    }
+
+                    // DRAW CELLS
+
+                    for &(x, y) in &self.grid.cells {
+                        let screen_x = rect.min.x + x as f32 * CELL_SIZE + self.camera.x;
+
+                        let screen_y = rect.min.y + y as f32 * CELL_SIZE + self.camera.y;
+
+                        let cell_rect = Rect::from_min_size(
+                            Pos2::new(screen_x, screen_y),
+                            Vec2::splat(CELL_SIZE),
+                        );
+
+                        painter.rect_filled(cell_rect, 0.0, Color32::LIGHT_GREEN);
+                    }
+                }
+            });
 
             ui.label(format!("Current generation: {}", self.gen_count));
         });

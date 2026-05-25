@@ -1,7 +1,6 @@
 mod app;
 mod grid;
 use app::MyApp;
-mod app2;
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([720.0, 720.0]), // Set your custom default resolution

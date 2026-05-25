@@ -102,7 +102,7 @@ impl eframe::App for MyApp {
             });
         });
 
-        egui::CentralPanel::default().show(ui, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             // Получаем всю доступную область
             let available = ui.available_size();
 
