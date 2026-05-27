@@ -33,6 +33,9 @@ impl Grid {
             self.cells.insert((x, y));
         }
     }
+    pub fn clear(&mut self) {
+        self.cells.clear();
+    }
 }
 
 // Counts the number of living neighbors for a given cell
