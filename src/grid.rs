@@ -23,6 +23,16 @@ impl Grid {
     pub fn insert(&mut self, x: i32, y: i32) {
         self.cells.insert((x, y));
     }
+    pub fn remove(&mut self, x: i32, y: i32) {
+        self.cells.remove(&(x, y));
+    }
+    pub fn toggle(&mut self, x: i32, y: i32) {
+        if self.cells.contains(&(x, y)) {
+            self.cells.remove(&(x, y));
+        } else {
+            self.cells.insert((x, y));
+        }
+    }
 }
 
 // Counts the number of living neighbors for a given cell
