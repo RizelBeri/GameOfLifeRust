@@ -3,14 +3,6 @@
 version = 4
 
 [[package]]
-name = "GameOfLifeRust"
-version = "1.0.0"
-dependencies = [
- "eframe",
- "egui",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1178,6 +1170,14 @@ dependencies = [
  "futures-task",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "game_of_life"
+version = "1.0.0"
+dependencies = [
+ "eframe",
+ "egui",
 ]
 
 [[package]]
