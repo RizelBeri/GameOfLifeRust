@@ -51,8 +51,6 @@ impl eframe::App for MyApp {
                 self.gen_count += 1;
 
                 self.last_tick = Instant::now();
-
-                println!("Generation count: {}", self.gen_count);
             }
         }
 

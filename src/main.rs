@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod app;
 mod grid;
 use app::MyApp;
@@ -8,7 +10,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "Game of Life",
+        concat!("Game of Life v", env!("CARGO_PKG_VERSION")),
         // eframe::NativeOptions::default(),
         options,
         Box::new(|_cc| Ok(Box::new(MyApp::new(_cc)))),
