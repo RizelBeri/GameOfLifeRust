@@ -1,13 +1,14 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
-use eframe::egui::{Color32, Panel, Pos2, Rect};
+use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect};
 use egui::{Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
 
 use crate::grid;
 
-const CELL_SIZE: f32 = 15.0;
+const MIN_CELL_SIZE: f32 = 4.0;
+const MAX_CELL_SIZE: f32 = 64.0;
 
 pub struct MyApp {
     grid: grid::Grid,
@@ -16,11 +17,13 @@ pub struct MyApp {
 
     last_tick: Instant,
     simulation_status: bool,
+    simulation_speed: f32,
 
     camera: Vec2,
+    zoom: f32,
 
     scene_rect: Rect,
-    simulation_speed: f32,
+    last_drawn: Option<(i32, i32)>,
 }
 
 impl MyApp {
@@ -33,7 +36,9 @@ impl MyApp {
             simulation_status: false,
             scene_rect: Rect::NOTHING,
             camera: Vec2::ZERO,
+            zoom: 15.0,
             simulation_speed: 250.0,
+            last_drawn: None,
         }
     }
 }
@@ -87,27 +92,19 @@ impl eframe::App for MyApp {
                 let (response, painter) = ui.allocate_painter(available, Sense::click_and_drag());
                 let rect = response.rect;
 
-                // ======================================
-                // CAMERA MOVEMENT
-                // ======================================
-
-                if response.dragged() {
-                    self.camera += response.drag_delta();
-                }
-
                 // GRID LINES
 
                 let stroke = egui::Stroke::new(1.0, Color32::DARK_GRAY);
 
-                let cols = (rect.width() / CELL_SIZE) as i32 + 2;
-                let rows = (rect.height() / CELL_SIZE) as i32 + 2;
+                let cols = (rect.width() / self.zoom) as i32 + 2;
+                let rows = (rect.height() / self.zoom) as i32 + 2;
 
-                let offset_x = self.camera.x.rem_euclid(CELL_SIZE);
-                let offset_y = self.camera.y.rem_euclid(CELL_SIZE);
+                let offset_x = self.camera.x.rem_euclid(self.zoom);
+                let offset_y = self.camera.y.rem_euclid(self.zoom);
 
                 // vertical
                 for x in -1..cols {
-                    let x_pos = rect.min.x + x as f32 * CELL_SIZE + offset_x;
+                    let x_pos = rect.min.x + x as f32 * self.zoom + offset_x;
 
                     painter.line_segment(
                         [
@@ -120,7 +117,7 @@ impl eframe::App for MyApp {
 
                 // horizontal
                 for x in -1..rows {
-                    let y_pos = rect.min.y + x as f32 * CELL_SIZE + offset_y;
+                    let y_pos = rect.min.y + x as f32 * self.zoom + offset_y;
 
                     painter.line_segment(
                         [
@@ -132,20 +129,53 @@ impl eframe::App for MyApp {
                 }
 
                 // DRAW CELLS
-
                 for &(x, y) in &self.grid.cells {
-                    let screen_x = rect.min.x + x as f32 * CELL_SIZE + self.camera.x;
+                    let screen_x = rect.min.x + x as f32 * self.zoom + self.camera.x;
 
-                    let screen_y = rect.min.y + y as f32 * CELL_SIZE + self.camera.y;
+                    let screen_y = rect.min.y + y as f32 * self.zoom + self.camera.y;
 
                     let cell_rect =
-                        Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(CELL_SIZE));
+                        Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(self.zoom));
 
                     painter.rect_filled(cell_rect, 0.0, Color32::LIGHT_GREEN);
                 }
 
                 // ======================================
+                // ZOOM
+                // ======================================
+
+                let scroll_delta = ui.input(|i| i.smooth_scroll_delta.y);
+                if scroll_delta != 0.0 {
+                    let zoom_factor = 1.0 + scroll_delta * 0.01;
+                    let new_zoom = (self.zoom * zoom_factor).clamp(MIN_CELL_SIZE, MAX_CELL_SIZE);
+
+                    // Zoom toward the mouse cursor so it stays fixed on screen
+                    if let Some(mouse_pos) = ui.input(|i| i.pointer.hover_pos()) {
+                        // Where is the mouse in world space before zoom?
+                        let local = mouse_pos - rect.min.to_vec2();
+                        let world_before = local - self.camera;
+
+                        // After zoom, that same world point must still be at local
+                        // local = world_before * (new_zoom / old_zoom) + new_camera
+                        // => new_camera = local - world_before * scale
+                        let scale = new_zoom / self.zoom;
+                        self.camera = local - world_before * scale;
+                    }
+
+                    self.zoom = new_zoom;
+                }
+
+                // ======================================
+                // CAMERA MOVEMENT (right click to drag)
+                // ======================================
+
+                if response.dragged_by(PointerButton::Secondary) {
+                    self.camera += response.drag_delta();
+                }
+
+                // ======================================
                 // MOUSE -> GRID COORD
+                // DRAG TO DRAW
                 // ======================================
 
                 let mouse_pos = ui.input(|i| i.pointer.hover_pos());
@@ -157,12 +187,26 @@ impl eframe::App for MyApp {
                     // position inside world
                     let world = local - self.camera;
 
-                    let cell_x = (world.x / CELL_SIZE).floor() as i32;
-                    let cell_y = (world.y / CELL_SIZE).floor() as i32;
+                    let cell_x = (world.x / self.zoom).floor() as i32;
+                    let cell_y = (world.y / self.zoom).floor() as i32;
 
-                    if response.clicked() && !self.simulation_status {
+                    if response.clicked_by(PointerButton::Primary) && !self.simulation_status {
                         self.grid.toggle(cell_x, cell_y);
+                        self.last_drawn = Some((cell_x, cell_y));
                     }
+
+                    if response.dragged_by(PointerButton::Primary) && !self.simulation_status {
+                        let new_cell = self.last_drawn != Some((cell_x, cell_y));
+                        if new_cell {
+                            self.grid.insert(cell_x, cell_y);
+                            self.last_drawn = Some((cell_x, cell_y));
+                        }
+                    }
+                }
+
+                // Reset draw trackin posiiton when button is released
+                if ui.input(|i| i.pointer.primary_released()) {
+                    self.last_drawn = None;
                 }
             });
 
