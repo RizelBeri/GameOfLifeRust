@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect};
-use egui::{Sense, Vec2, containers::menu};
+use egui::{Key, Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
 
 use crate::grid;
@@ -21,6 +21,7 @@ pub struct MyApp {
 
     camera: Vec2,
     zoom: f32,
+    cell_color: Color32,
 
     scene_rect: Rect,
     last_drawn: Option<(i32, i32)>,
@@ -37,6 +38,7 @@ impl MyApp {
             scene_rect: Rect::NOTHING,
             camera: Vec2::ZERO,
             zoom: 15.0,
+            cell_color: Color32::LIGHT_BLUE,
             simulation_speed: 250.0,
             last_drawn: None,
         }
@@ -137,7 +139,7 @@ impl eframe::App for MyApp {
                     let cell_rect =
                         Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(self.zoom));
 
-                    painter.rect_filled(cell_rect, 0.0, Color32::LIGHT_GREEN);
+                    painter.rect_filled(cell_rect, 0.0, self.cell_color);
                 }
 
                 // ======================================
@@ -214,7 +216,16 @@ impl eframe::App for MyApp {
                 if ui.button("Start/Stop").clicked() {
                     self.simulation_status = !self.simulation_status;
                 }
+                if ui.input(|i| i.key_pressed(Key::Space)) {
+                    self.simulation_status = !self.simulation_status;
+                }
                 if ui.button("Reset").clicked() {
+                    self.grid.clear();
+                    self.gen_count = 0;
+                    self.simulation_status = false;
+                    self.simulation_speed = 250.0;
+                }
+                if ui.input(|i| i.key_pressed(Key::R)) {
                     self.grid.clear();
                     self.gen_count = 0;
                     self.simulation_status = false;
@@ -235,6 +246,14 @@ impl eframe::App for MyApp {
                 "Simulation speed: {:.0}%",
                 250.0 / self.simulation_speed * 100.0
             ));
+
+            ui.horizontal(|ui| {
+                ui.label("Cell color: ");
+                ui.color_edit_button_srgba(&mut self.cell_color);
+                if ui.button("Reset").clicked() {
+                    self.cell_color = Color32::LIGHT_BLUE;
+                }
+            });
         });
     }
 }
