@@ -1,11 +1,12 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
+use crate::grid;
+use crate::widgets::ViewMode;
+use crate::widgets::toggle;
 use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect};
 use egui::{Key, Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
-
-use crate::grid;
 
 const MIN_CELL_SIZE: f32 = 4.0;
 const MAX_CELL_SIZE: f32 = 64.0;
@@ -19,6 +20,7 @@ pub struct MyApp {
     simulation_status: bool,
     simulation_speed: f32,
 
+    view_mode: ViewMode,
     camera: Vec2,
     zoom: f32,
     cell_color: Color32,
@@ -39,6 +41,7 @@ impl MyApp {
             camera: Vec2::ZERO,
             zoom: 15.0,
             cell_color: Color32::LIGHT_BLUE,
+            view_mode: ViewMode::Flat,
             simulation_speed: 250.0,
             last_drawn: None,
         }
@@ -254,6 +257,8 @@ impl eframe::App for MyApp {
                     self.cell_color = Color32::LIGHT_BLUE;
                 }
             });
+
+            ui.add(toggle(&mut self.view_mode));
         });
     }
 }
