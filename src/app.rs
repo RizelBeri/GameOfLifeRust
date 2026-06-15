@@ -134,16 +134,7 @@ impl eframe::App for MyApp {
                 }
 
                 // DRAW CELLS
-                for &(x, y) in &self.grid.cells {
-                    let screen_x = rect.min.x + x as f32 * self.zoom + self.camera.x;
-
-                    let screen_y = rect.min.y + y as f32 * self.zoom + self.camera.y;
-
-                    let cell_rect =
-                        Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(self.zoom));
-
-                    painter.rect_filled(cell_rect, 0.0, self.cell_color);
-                }
+                draw_cell(self, &rect, &painter);
 
                 // ======================================
                 // ZOOM
@@ -260,5 +251,18 @@ impl eframe::App for MyApp {
 
             ui.add(toggle(&mut self.view_mode));
         });
+    }
+}
+
+// DRAW CELLS
+pub fn draw_cell(ui: &mut MyApp, rect: &Rect, painter: &egui::Painter) {
+    for &(x, y) in &ui.grid.cells {
+        let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+
+        let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+
+        let cell_rect = Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
+
+        painter.rect_filled(cell_rect, 0.0, ui.cell_color);
     }
 }
