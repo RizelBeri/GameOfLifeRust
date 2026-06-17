@@ -256,63 +256,85 @@ impl eframe::App for MyApp {
 
 // DRAW CELLS
 pub fn draw_cell(ui: &mut MyApp, rect: &Rect, painter: &egui::Painter) {
-    let D: f32 = ui.zoom * 0.2;
+    let d: f32 = ui.zoom * 0.3;
+    let base = ui.cell_color;
+
+    // Change color for top and left faces
+    let top_color = Color32::from_rgb(
+        (base.r() as f32 * 1.3).min(255.0) as u8,
+        (base.g() as f32 * 1.3).min(255.0) as u8,
+        (base.b() as f32 * 1.3).min(255.0) as u8,
+    );
+    let left_color = Color32::from_rgb(
+        (base.r() as f32 * 0.6) as u8,
+        (base.g() as f32 * 0.6) as u8,
+        (base.b() as f32 * 0.6) as u8,
+    );
+
+    let mut sorted_cells: Vec<(i32, i32)> = ui.grid.cells.iter().cloned().collect();
 
     if ui.view_mode == ViewMode::Flat {
-        for &(x, y) in &ui.grid.cells {
+        for &(x, y) in &sorted_cells {
             let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
-
             let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
-
             let cell_rect =
                 Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
-
-            painter.rect_filled(cell_rect, 0.0, ui.cell_color);
+            painter.rect_filled(cell_rect, 0.0, base);
         }
     } else {
+        // Left face
+        sorted_cells.sort_by(|a, b| a.1.cmp(&b.1).then(b.0.cmp(&a.0)));
+        for &(x, y) in &sorted_cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let s = ui.zoom;
+
+            painter.add(Shape::convex_polygon(
+                vec![
+                    Pos2::new(screen_x - d, screen_y - d),
+                    Pos2::new(screen_x, screen_y),
+                    Pos2::new(screen_x, screen_y + s),
+                    Pos2::new(screen_x - d, screen_y + s - d),
+                ],
+                left_color,
+                Stroke::NONE,
+            ));
+        }
+
         // Top face
-        for &(x, y) in &ui.grid.cells {
-            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
-            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
-            let top_face = Shape::convex_polygon(
-                vec![
-                    Pos2::new(screen_x - D, screen_y - D),
-                    Pos2::new(screen_x + ui.zoom - D, screen_y - D),
-                    Pos2::new(screen_x + ui.zoom, screen_y),
-                    Pos2::new(screen_x, screen_y),
-                ],
-                Color32::LIGHT_BLUE,
-                Stroke::NONE,
-            );
-            painter.add(top_face);
+        sorted_cells.sort_by(|a, b| b.1.cmp(&a.1).then(b.0.cmp(&a.0)));
+        for &(x, y) in &sorted_cells {
+            if !ui.grid.cells.contains(&(x, y - 1)) {
+                // draw top face
+
+                let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+                let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+                let s = ui.zoom;
+
+                painter.add(Shape::convex_polygon(
+                    vec![
+                        Pos2::new(screen_x - d, screen_y - d),
+                        Pos2::new(screen_x + s - d, screen_y - d),
+                        Pos2::new(screen_x + s, screen_y),
+                        Pos2::new(screen_x, screen_y),
+                    ],
+                    top_color,
+                    Stroke::NONE,
+                ));
+            }
         }
 
-        // Draw front faces
-        for &(x, y) in &ui.grid.cells {
-            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
-
-            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
-
-            let front_rect =
-                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
-            painter.rect_filled(front_rect, 0.0, Color32::BLUE);
-        }
-
-        // Right face
-        for &(x, y) in &ui.grid.cells {
+        // Front face
+        for &(x, y) in &sorted_cells {
             let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
             let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
-            let right_face = Shape::convex_polygon(
-                vec![
-                    Pos2::new(screen_x - D, screen_y - D),
-                    Pos2::new(screen_x, screen_y),
-                    Pos2::new(screen_x, screen_y + ui.zoom),
-                    Pos2::new(screen_x - D, screen_y + ui.zoom - D),
-                ],
-                Color32::DARK_BLUE,
-                Stroke::NONE,
+            let s = ui.zoom;
+
+            painter.rect_filled(
+                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(s)),
+                0.0,
+                base,
             );
-            painter.add(right_face);
         }
     }
 }
