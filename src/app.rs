@@ -4,8 +4,8 @@
 use crate::grid;
 use crate::widgets::ViewMode;
 use crate::widgets::toggle;
-use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect, Shape, Stroke};
-use egui::{Key, Sense, Vec2, containers::menu};
+use eframe::egui::{Color32, PointerButton, Pos2, Rect, Shape, Stroke};
+use egui::{Key, Sense, Vec2};
 use std::time::{Duration, Instant};
 
 const MIN_CELL_SIZE: f32 = 4.0;
@@ -63,22 +63,6 @@ impl eframe::App for MyApp {
                 self.last_tick = Instant::now();
             }
         }
-
-        Panel::top("menu").show_inside(ui, |ui| {
-            menu::MenuBar::new().ui(ui, |ui| {
-                if ui.button("Start/Stop simulation").clicked() {
-                    self.simulation_status = !self.simulation_status;
-                }
-
-                if ui.button("🌙 Dark").clicked() {
-                    ui.set_visuals(egui::Visuals::dark());
-                }
-                if ui.button("🌙 Light").clicked() {
-                    ui.set_visuals(egui::Visuals::light());
-                }
-            });
-            // ui.horizontal(|ui| {});
-        });
 
         egui::CentralPanel::default().show_inside(ui, |ui| {
             let panel_size = ui.min_size();
@@ -205,35 +189,25 @@ impl eframe::App for MyApp {
                 }
             });
 
+            // ================================
+            // CONROL UI
+            // ================================
+
             egui::MenuBar::new().ui(ui, |ui| {
                 if ui.button("Start/Stop").clicked() {
                     self.simulation_status = !self.simulation_status;
                 }
-                if ui.input(|i| i.key_pressed(Key::Space)) {
-                    self.simulation_status = !self.simulation_status;
-                }
+
                 if ui.button("Reset").clicked() {
                     self.grid.clear();
                     self.gen_count = 0;
                     self.simulation_status = false;
                     self.simulation_speed = 250.0;
                 }
-                if ui.input(|i| i.key_pressed(Key::R)) {
-                    self.grid.clear();
-                    self.gen_count = 0;
-                    self.simulation_status = false;
-                    self.simulation_speed = 250.0;
-                }
-                if ui.button("Speed Up").clicked() {
-                    self.simulation_speed = (self.simulation_speed - 25.0).max(50.0);
-                }
-                if ui.button("Slow Down").clicked() {
-                    self.simulation_speed = (self.simulation_speed + 25.0).min(2000.0);
-                }
             });
 
             ui.label(format!("Current generation: {}", self.gen_count));
-            ui.label(format!("Simulation status: {}", self.simulation_status));
+            ui.label(format!("Cell count: {}", self.grid.cells.len()));
 
             ui.label(format!(
                 "Simulation speed: {:.0}%",
@@ -249,7 +223,40 @@ impl eframe::App for MyApp {
                 }
             });
 
+            // Speed
+            ui.horizontal(|ui| {
+                ui.label(format!("Speed: {:.1}×", 250.0 / self.simulation_speed));
+
+                ui.add(
+                    egui::Slider::new(&mut self.simulation_speed, 50.0..=2000.0)
+                        .logarithmic(true)
+                        .show_value(false),
+                );
+            });
+
+            // View mode
             ui.add(toggle(&mut self.view_mode));
+            if ui.button("🌙 Dark /🌙 Light").clicked() {
+                if ui.visuals().dark_mode {
+                    ui.set_visuals(egui::Visuals::light());
+                } else {
+                    ui.set_visuals(egui::Visuals::dark());
+                }
+            }
+
+            // ================================
+            // KEYBOARD INPUT HANDLE
+            // ================================
+            if ui.input(|i| i.key_pressed(Key::R)) {
+                self.grid.clear();
+                self.gen_count = 0;
+                self.simulation_status = false;
+                self.simulation_speed = 250.0;
+            }
+
+            if ui.input(|i| i.key_pressed(Key::Space)) {
+                self.simulation_status = !self.simulation_status;
+            }
         });
     }
 }
