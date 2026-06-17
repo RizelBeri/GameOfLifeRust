@@ -2,6 +2,8 @@
 
 mod app;
 mod grid;
+mod widgets;
+
 use app::MyApp;
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {

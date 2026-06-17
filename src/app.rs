@@ -1,11 +1,12 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
-use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect};
+use crate::grid;
+use crate::widgets::ViewMode;
+use crate::widgets::toggle;
+use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect, Shape, Stroke};
 use egui::{Key, Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
-
-use crate::grid;
 
 const MIN_CELL_SIZE: f32 = 4.0;
 const MAX_CELL_SIZE: f32 = 64.0;
@@ -19,6 +20,7 @@ pub struct MyApp {
     simulation_status: bool,
     simulation_speed: f32,
 
+    view_mode: ViewMode,
     camera: Vec2,
     zoom: f32,
     cell_color: Color32,
@@ -39,6 +41,7 @@ impl MyApp {
             camera: Vec2::ZERO,
             zoom: 15.0,
             cell_color: Color32::LIGHT_BLUE,
+            view_mode: ViewMode::Flat,
             simulation_speed: 250.0,
             last_drawn: None,
         }
@@ -81,7 +84,6 @@ impl eframe::App for MyApp {
             let panel_size = ui.min_size();
 
             // FRAME
-            // let frame = egui::Frame::default().fill(Color32::WHITE);
             let frame = egui::Frame::default();
 
             frame.show(ui, |ui| {
@@ -131,16 +133,7 @@ impl eframe::App for MyApp {
                 }
 
                 // DRAW CELLS
-                for &(x, y) in &self.grid.cells {
-                    let screen_x = rect.min.x + x as f32 * self.zoom + self.camera.x;
-
-                    let screen_y = rect.min.y + y as f32 * self.zoom + self.camera.y;
-
-                    let cell_rect =
-                        Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(self.zoom));
-
-                    painter.rect_filled(cell_rect, 0.0, self.cell_color);
-                }
+                draw_cell(self, &rect, &painter);
 
                 // ======================================
                 // ZOOM
@@ -247,6 +240,7 @@ impl eframe::App for MyApp {
                 250.0 / self.simulation_speed * 100.0
             ));
 
+            // Color button
             ui.horizontal(|ui| {
                 ui.label("Cell color: ");
                 ui.color_edit_button_srgba(&mut self.cell_color);
@@ -254,6 +248,93 @@ impl eframe::App for MyApp {
                     self.cell_color = Color32::LIGHT_BLUE;
                 }
             });
+
+            ui.add(toggle(&mut self.view_mode));
         });
+    }
+}
+
+// DRAW CELLS
+pub fn draw_cell(ui: &mut MyApp, rect: &Rect, painter: &egui::Painter) {
+    let d: f32 = ui.zoom * 0.3;
+    let base = ui.cell_color;
+
+    // Change color for top and left faces
+    let top_color = Color32::from_rgb(
+        (base.r() as f32 * 1.3).min(255.0) as u8,
+        (base.g() as f32 * 1.3).min(255.0) as u8,
+        (base.b() as f32 * 1.3).min(255.0) as u8,
+    );
+    let left_color = Color32::from_rgb(
+        (base.r() as f32 * 0.6) as u8,
+        (base.g() as f32 * 0.6) as u8,
+        (base.b() as f32 * 0.6) as u8,
+    );
+
+    let mut sorted_cells: Vec<(i32, i32)> = ui.grid.cells.iter().cloned().collect();
+
+    if ui.view_mode == ViewMode::Flat {
+        for &(x, y) in &sorted_cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let cell_rect =
+                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
+            painter.rect_filled(cell_rect, 0.0, base);
+        }
+    } else {
+        // Left face
+        sorted_cells.sort_by(|a, b| a.1.cmp(&b.1).then(b.0.cmp(&a.0)));
+        for &(x, y) in &sorted_cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let s = ui.zoom;
+
+            painter.add(Shape::convex_polygon(
+                vec![
+                    Pos2::new(screen_x - d, screen_y - d),
+                    Pos2::new(screen_x, screen_y),
+                    Pos2::new(screen_x, screen_y + s),
+                    Pos2::new(screen_x - d, screen_y + s - d),
+                ],
+                left_color,
+                Stroke::NONE,
+            ));
+        }
+
+        // Top face
+        sorted_cells.sort_by(|a, b| b.1.cmp(&a.1).then(b.0.cmp(&a.0)));
+        for &(x, y) in &sorted_cells {
+            if !ui.grid.cells.contains(&(x, y - 1)) {
+                // draw top face
+
+                let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+                let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+                let s = ui.zoom;
+
+                painter.add(Shape::convex_polygon(
+                    vec![
+                        Pos2::new(screen_x - d, screen_y - d),
+                        Pos2::new(screen_x + s - d, screen_y - d),
+                        Pos2::new(screen_x + s, screen_y),
+                        Pos2::new(screen_x, screen_y),
+                    ],
+                    top_color,
+                    Stroke::NONE,
+                ));
+            }
+        }
+
+        // Front face
+        for &(x, y) in &sorted_cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let s = ui.zoom;
+
+            painter.rect_filled(
+                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(s)),
+                0.0,
+                base,
+            );
+        }
     }
 }
