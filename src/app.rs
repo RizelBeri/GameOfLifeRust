@@ -4,7 +4,7 @@
 use crate::grid;
 use crate::widgets::ViewMode;
 use crate::widgets::toggle;
-use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect};
+use eframe::egui::{Color32, Panel, PointerButton, Pos2, Rect, Shape, Stroke};
 use egui::{Key, Sense, Vec2, containers::menu};
 use std::time::{Duration, Instant};
 
@@ -84,7 +84,6 @@ impl eframe::App for MyApp {
             let panel_size = ui.min_size();
 
             // FRAME
-            // let frame = egui::Frame::default().fill(Color32::WHITE);
             let frame = egui::Frame::default();
 
             frame.show(ui, |ui| {
@@ -241,6 +240,7 @@ impl eframe::App for MyApp {
                 250.0 / self.simulation_speed * 100.0
             ));
 
+            // Color button
             ui.horizontal(|ui| {
                 ui.label("Cell color: ");
                 ui.color_edit_button_srgba(&mut self.cell_color);
@@ -256,13 +256,63 @@ impl eframe::App for MyApp {
 
 // DRAW CELLS
 pub fn draw_cell(ui: &mut MyApp, rect: &Rect, painter: &egui::Painter) {
-    for &(x, y) in &ui.grid.cells {
-        let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+    let D: f32 = ui.zoom * 0.2;
 
-        let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+    if ui.view_mode == ViewMode::Flat {
+        for &(x, y) in &ui.grid.cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
 
-        let cell_rect = Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
 
-        painter.rect_filled(cell_rect, 0.0, ui.cell_color);
+            let cell_rect =
+                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
+
+            painter.rect_filled(cell_rect, 0.0, ui.cell_color);
+        }
+    } else {
+        // Top face
+        for &(x, y) in &ui.grid.cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let top_face = Shape::convex_polygon(
+                vec![
+                    Pos2::new(screen_x - D, screen_y - D),
+                    Pos2::new(screen_x + ui.zoom - D, screen_y - D),
+                    Pos2::new(screen_x + ui.zoom, screen_y),
+                    Pos2::new(screen_x, screen_y),
+                ],
+                Color32::LIGHT_BLUE,
+                Stroke::NONE,
+            );
+            painter.add(top_face);
+        }
+
+        // Draw front faces
+        for &(x, y) in &ui.grid.cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+
+            let front_rect =
+                Rect::from_min_size(Pos2::new(screen_x, screen_y), Vec2::splat(ui.zoom));
+            painter.rect_filled(front_rect, 0.0, Color32::BLUE);
+        }
+
+        // Right face
+        for &(x, y) in &ui.grid.cells {
+            let screen_x = rect.min.x + x as f32 * ui.zoom + ui.camera.x;
+            let screen_y = rect.min.y + y as f32 * ui.zoom + ui.camera.y;
+            let right_face = Shape::convex_polygon(
+                vec![
+                    Pos2::new(screen_x - D, screen_y - D),
+                    Pos2::new(screen_x, screen_y),
+                    Pos2::new(screen_x, screen_y + ui.zoom),
+                    Pos2::new(screen_x - D, screen_y + ui.zoom - D),
+                ],
+                Color32::DARK_BLUE,
+                Stroke::NONE,
+            );
+            painter.add(right_face);
+        }
     }
 }
