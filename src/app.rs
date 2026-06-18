@@ -64,6 +64,88 @@ impl eframe::App for MyApp {
             }
         }
 
+        // ================================
+        // CONROL UI
+        // ================================
+        egui::Panel::right("Controls").show_inside(ui, |ui| {
+            // Simulation control in collapsing pannel
+            egui::CollapsingHeader::new("⚙ Simulation")
+                .default_open(true)
+                .show(ui, |ui| {
+                    // ui.group(|ui| {
+                    if ui.button("Start/Stop | SPACE").clicked()
+                        || ui.input(|i| i.key_pressed(Key::Space))
+                    {
+                        self.simulation_status = !self.simulation_status;
+                    }
+
+                    if ui.button("Reset | R").clicked() || ui.input(|i| i.key_pressed(Key::R)) {
+                        self.grid.clear();
+                        self.gen_count = 0;
+                        self.simulation_status = false;
+                        self.simulation_speed = 250.0;
+                    }
+                    // });
+                });
+
+            // Stats
+            egui::CollapsingHeader::new("⚙ Stats")
+                .default_open(true)
+                .show(ui, |ui| {
+                    ui.group(|ui| {
+                        ui.label("Stats");
+                        ui.label(format!("Current generation: {}", self.gen_count));
+                        ui.label(format!("Cell count: {}", self.grid.cells.len()));
+
+                        ui.label(format!(
+                            "Simulation speed: {:.0}%",
+                            250.0 / self.simulation_speed * 100.0
+                        ));
+                    });
+                });
+
+            // Speed
+            ui.horizontal(|ui| {
+                ui.label(format!("Speed: {:.1}×", 250.0 / self.simulation_speed));
+
+                ui.add(
+                    egui::Slider::new(&mut self.simulation_speed, 50.0..=2000.0)
+                        .logarithmic(true)
+                        .show_value(false),
+                );
+            });
+
+            egui::CollapsingHeader::new("🎨 Appearance")
+                .default_open(true)
+                .show(ui, |ui| {
+                    // Color button
+                    ui.horizontal(|ui| {
+                        ui.label("Cell color: ");
+                        ui.color_edit_button_srgba(&mut self.cell_color);
+                        if ui.button("Reset").clicked() {
+                            self.cell_color = Color32::LIGHT_BLUE;
+                        }
+                    });
+
+                    // View mode
+                    ui.horizontal(|ui| {
+                        ui.label("2D");
+                        ui.add(toggle(&mut self.view_mode));
+                        ui.label("3D");
+                    });
+                    if ui.button("🌙 Dark /🌙 Light").clicked() {
+                        if ui.visuals().dark_mode {
+                            ui.set_visuals(egui::Visuals::light());
+                        } else {
+                            ui.set_visuals(egui::Visuals::dark());
+                        }
+                    }
+                });
+        });
+
+        // ================================
+        // MAIN SIMULATION
+        // ================================
         egui::CentralPanel::default().show_inside(ui, |ui| {
             let panel_size = ui.min_size();
 
@@ -188,75 +270,6 @@ impl eframe::App for MyApp {
                     self.last_drawn = None;
                 }
             });
-
-            // ================================
-            // CONROL UI
-            // ================================
-
-            egui::MenuBar::new().ui(ui, |ui| {
-                if ui.button("Start/Stop").clicked() {
-                    self.simulation_status = !self.simulation_status;
-                }
-
-                if ui.button("Reset").clicked() {
-                    self.grid.clear();
-                    self.gen_count = 0;
-                    self.simulation_status = false;
-                    self.simulation_speed = 250.0;
-                }
-            });
-
-            ui.label(format!("Current generation: {}", self.gen_count));
-            ui.label(format!("Cell count: {}", self.grid.cells.len()));
-
-            ui.label(format!(
-                "Simulation speed: {:.0}%",
-                250.0 / self.simulation_speed * 100.0
-            ));
-
-            // Color button
-            ui.horizontal(|ui| {
-                ui.label("Cell color: ");
-                ui.color_edit_button_srgba(&mut self.cell_color);
-                if ui.button("Reset").clicked() {
-                    self.cell_color = Color32::LIGHT_BLUE;
-                }
-            });
-
-            // Speed
-            ui.horizontal(|ui| {
-                ui.label(format!("Speed: {:.1}×", 250.0 / self.simulation_speed));
-
-                ui.add(
-                    egui::Slider::new(&mut self.simulation_speed, 50.0..=2000.0)
-                        .logarithmic(true)
-                        .show_value(false),
-                );
-            });
-
-            // View mode
-            ui.add(toggle(&mut self.view_mode));
-            if ui.button("🌙 Dark /🌙 Light").clicked() {
-                if ui.visuals().dark_mode {
-                    ui.set_visuals(egui::Visuals::light());
-                } else {
-                    ui.set_visuals(egui::Visuals::dark());
-                }
-            }
-
-            // ================================
-            // KEYBOARD INPUT HANDLE
-            // ================================
-            if ui.input(|i| i.key_pressed(Key::R)) {
-                self.grid.clear();
-                self.gen_count = 0;
-                self.simulation_status = false;
-                self.simulation_speed = 250.0;
-            }
-
-            if ui.input(|i| i.key_pressed(Key::Space)) {
-                self.simulation_status = !self.simulation_status;
-            }
         });
     }
 }
