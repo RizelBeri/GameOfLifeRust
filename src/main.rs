@@ -13,8 +13,12 @@ fn main() -> eframe::Result<()> {
 
     eframe::run_native(
         concat!("Game of Life v", env!("CARGO_PKG_VERSION")),
-        // eframe::NativeOptions::default(),
         options,
-        Box::new(|_cc| Ok(Box::new(MyApp::new(_cc)))),
+        Box::new(|_cc| {
+            // Apply the dark theme on startup
+            _cc.egui_ctx.set_visuals(egui::Visuals::dark());
+
+            Ok(Box::new(MyApp::new(_cc)))
+        }),
     )
 }
